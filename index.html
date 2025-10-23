@@ -1,29 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Tra Cứu Mã Hàng</title>
+    <title>Tra Cứu Dữ Liệu Cột D</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        /* CSS để giao diện hiển thị tốt trên điện thoại */
         body { font-family: Arial, sans-serif; padding: 15px; max-width: 600px; margin: auto; }
         input[type="text"] { width: 100%; padding: 12px; margin-bottom: 20px; box-sizing: border-box; font-size: 16px; border: 1px solid #ddd; border-radius: 5px; }
         .result-item { border: 1px solid #e0e0e0; padding: 10px; margin-bottom: 8px; border-radius: 5px; background-color: #f9f9f9; }
         .result-code { font-weight: bold; color: #0056b3; font-size: 1.1em; }
-        .result-name { font-size: 0.9em; color: #555; margin-top: 3px; }
+        .result-search-field { font-size: 0.9em; color: #28a745; margin-top: 3px; font-weight: bold; } /* Highlight Cột D */
+        .result-other-info { font-size: 0.8em; color: #555; }
         #results p { color: #888; }
     </style>
 </head>
 <body>
 
-    <h2>Tra Cứu Mã Hàng</h2>
-    <input type="text" id="searchInput" onkeyup="searchData()" placeholder="Nhập mã hàng hoặc tên hàng...">
+    <h2>🔍 Tra Cứu Dữ Liệu Cột D</h2>
+    <input type="text" id="searchInput" onkeyup="searchData()" placeholder="Nhập ký tự để tìm trong Cột D...">
 
     <div id="results">
-        <p>Bắt đầu gõ để tìm kiếm...</p>
+        <p>Đang tải dữ liệu...</p>
     </div>
 
     <script>
         let allData = [];
-        const dataFilePath = 'data.csv'; // ĐẢM BẢO KHỚP VỚI TÊN FILE CSV CỦA BẠN
+        const dataFilePath = 'data.csv'; // Đảm bảo tên file CSV của bạn là data.csv
 
         // Tải và xử lý dữ liệu CSV
         fetch(dataFilePath)
@@ -33,11 +35,11 @@
                 document.getElementById('results').innerHTML = '<p>Dữ liệu đã sẵn sàng. Hãy bắt đầu gõ.</p>';
             })
             .catch(error => {
-                document.getElementById('results').innerHTML = '<p style="color:red;">Lỗi: Không thể tải file dữ liệu CSV.</p>';
+                document.getElementById('results').innerHTML = '<p style="color:red;">Lỗi: Không thể tải file dữ liệu CSV. Vui lòng kiểm tra tên file.</p>';
                 console.error('Error loading CSV:', error);
             });
 
-        // Hàm chuyển đổi CSV thành Mảng Dữ liệu
+        // Hàm chuyển đổi CSV thành Mảng Dữ liệu (gán Cột D vào trường 'searchField')
         function parseCSV(csv) {
             const lines = csv.split('\n');
             const result = [];
@@ -45,14 +47,20 @@
             for (let i = 1; i < lines.length; i++) {
                 const currentLine = lines[i].trim();
                 if (currentLine) {
-                    // Dùng regex để xử lý dấu phẩy bên trong dấu ngoặc kép (nếu có)
+                    // Tách các cột, có hỗ trợ dấu phẩy trong dấu ngoặc kép
                     const columns = currentLine.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || currentLine.split(',');
-                    if (columns.length >= 2) {
+                    
+                    // Giả sử có ít nhất 4 cột (A, B, C, D)
+                    if (columns.length >= 4) { 
                         result.push({
-                            // Cột 0: Mã hàng
-                            code: columns[0].trim().replace(/^"|"$/g, ''),
-                            // Cột 1: Tên sản phẩm
-                            name: columns[1].trim().replace(/^"|"$/g, '')
+                            colA: columns[0] ? columns[0].trim().replace(/^"|"$/g, '') : '', 
+                            colB: columns[1] ? columns[1].trim().replace(/^"|"$/g, '') : '',
+                            colC: columns[2] ? columns[2].trim().replace(/^"|"$/g, '') : '',
+                            
+                            // *** CỘT D (Index 3) dùng để tìm kiếm ***
+                            searchField: columns[3] ? columns[3].trim().replace(/^"|"$/g, '') : '',
+                            
+                            // Thêm các cột khác nếu cần, ví dụ: colE: columns[4]...
                         });
                     }
                 }
@@ -72,21 +80,26 @@
             }
 
             const filteredData = allData.filter(item => {
-                // Tự động tìm kiếm ký tự trong Mã hàng HOẶC Tên hàng
-                return item.code.toLowerCase().includes(searchTerm) || 
-                       item.name.toLowerCase().includes(searchTerm);
-            }).slice(0, 50); // Giới hạn 50 kết quả đầu tiên để tối ưu hiệu suất
+                // *** CHỈ TÌM KIẾM TRONG TRƯỜNG 'searchField' (CỘT D) ***
+                return item.searchField.toLowerCase().includes(searchTerm);
+            }).slice(0, 50); // Giới hạn 50 kết quả để tối ưu hiệu suất
 
             // Hiển thị kết quả
             if (filteredData.length > 0) {
                 filteredData.forEach(item => {
                     const resultItem = document.createElement('div');
                     resultItem.className = 'result-item';
-                    resultItem.innerHTML = `<div class="result-code">Mã: ${item.code}</div><div class="result-name">Tên: ${item.name}</div>`;
+                    
+                    // Hiển thị thông tin chính
+                    resultItem.innerHTML = `
+                        <div class="result-search-field">Dữ liệu Cột D: ${item.searchField}</div>
+                        <div class="result-code">Cột A (Mã): ${item.colA}</div>
+                        <div class="result-other-info">Cột B: ${item.colB} | Cột C: ${item.colC}</div>
+                    `;
                     resultsDiv.appendChild(resultItem);
                 });
             } else {
-                resultsDiv.innerHTML = `<p>Không tìm thấy kết quả cho "${searchTerm}".</p>`;
+                resultsDiv.innerHTML = `<p>Không tìm thấy kết quả trong Cột D cho "${searchTerm}".</p>`;
             }
         }
     </script>
