@@ -1,39 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Tra Cứu Dữ Liệu Cột D</title>
+    <title>Tra Cứu Dữ Liệu Dạng Bảng</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        /* CSS để giao diện hiển thị tốt trên điện thoại */
-        body { font-family: Arial, sans-serif; padding: 15px; max-width: 600px; margin: auto; }
+        /* CSS Cơ bản */
+        body { font-family: Arial, sans-serif; padding: 15px; max-width: 800px; margin: auto; }
         input[type="text"] { width: 100%; padding: 12px; margin-bottom: 20px; box-sizing: border-box; font-size: 16px; border: 1px solid #ddd; border-radius: 5px; }
+        #results p { color: #888; }
         
-        /* CSS cho Bảng Kết Quả */
-        .result-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        .result-table th, .result-table td { 
-            border: 1px solid #ddd; 
-            padding: 8px; 
+        /* CSS Dạng Bảng */
+        .data-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 15px;
+            font-size: 0.9em; /* Giảm kích thước font cho dễ xem trên điện thoại */
+        }
+        .data-table th, .data-table td {
+            border: 1px solid #ddd;
+            padding: 8px 6px;
             text-align: left;
-            font-size: 0.9em;
         }
-        .result-table th { 
-            background-color: #f2f2f2; 
+        .data-table th {
+            background-color: #f2f2f2;
             font-weight: bold;
+            position: sticky; /* Giữ tiêu đề bảng khi cuộn */
+            top: 0;
+            z-index: 10;
         }
-        .result-table tr:nth-child(even) { 
-            background-color: #f9f9f9; 
-        }
-        .highlight-col-d { /* Để làm nổi bật cột tìm kiếm */
-            background-color: #e6ffed; 
+        .highlight-col-d { 
+            background-color: #e6ffe6; /* Tô màu nhẹ cho cột tìm kiếm (Cột D) */
             font-weight: bold;
             color: #28a745;
         }
-        #results p { color: #888; }
     </style>
 </head>
 <body>
 
-    <h2>🔍 Tra Cứu Dữ Liệu Cột D</h2>
+    <h2>🔍 Tra Cứu Dữ Liệu Dạng Bảng</h2>
     <input type="text" id="searchInput" onkeyup="searchData()" placeholder="Nhập ký tự để tìm trong Cột D...">
 
     <div id="results">
@@ -42,9 +46,7 @@
 
     <script>
         let allData = [];
-        const dataFilePath = 'data.csv'; // Đảm bảo tên file CSV của bạn là data.csv
-        // Đặt tên tiêu đề cột để hiển thị trong bảng
-        const columnHeaders = ['Mã (A)', 'Tên (B)', 'Cột C', 'Cột D (Search)']; 
+        const dataFilePath = 'data.csv';
 
         // Tải và xử lý dữ liệu CSV
         fetch(dataFilePath)
@@ -54,15 +56,14 @@
                 document.getElementById('results').innerHTML = '<p>Dữ liệu đã sẵn sàng. Hãy bắt đầu gõ.</p>';
             })
             .catch(error => {
-                document.getElementById('results').innerHTML = '<p style="color:red;">Lỗi: Không thể tải file dữ liệu CSV. Vui lòng kiểm tra tên file.</p>';
+                document.getElementById('results').innerHTML = '<p style="color:red;">Lỗi: Không thể tải file dữ liệu CSV.</p>';
                 console.error('Error loading CSV:', error);
             });
 
-        // Hàm chuyển đổi CSV thành Mảng Dữ liệu
+        // Hàm chuyển đổi CSV thành Mảng Dữ liệu (gán Cột D vào trường 'searchField')
         function parseCSV(csv) {
             const lines = csv.split('\n');
             const result = [];
-            
             // Bỏ qua dòng header (dòng 0)
             for (let i = 1; i < lines.length; i++) {
                 const currentLine = lines[i].trim();
@@ -71,10 +72,13 @@
                     
                     if (columns.length >= 4) { 
                         result.push({
+                            // Giả sử 4 cột đầu tiên là A, B, C, D
                             colA: columns[0] ? columns[0].trim().replace(/^"|"$/g, '') : '', 
                             colB: columns[1] ? columns[1].trim().replace(/^"|"$/g, '') : '',
                             colC: columns[2] ? columns[2].trim().replace(/^"|"$/g, '') : '',
-                            searchField: columns[3] ? columns[3].trim().replace(/^"|"$/g, '') : '', // Cột D (Index 3)
+                            // CỘT D (Index 3) dùng để tìm kiếm
+                            searchField: columns[3] ? columns[3].trim().replace(/^"|"$/g, '') : '',
+                            // Thêm các cột khác nếu cần, ví dụ: colE: columns[4]...
                         });
                     }
                 }
@@ -82,7 +86,7 @@
             return result;
         }
 
-        // Hàm Tìm kiếm Tự động và Hiển thị Bảng
+        // Hàm Tìm kiếm Tự động (chạy khi gõ phím)
         function searchData() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
             const resultsDiv = document.getElementById('results');
@@ -94,36 +98,27 @@
             }
 
             const filteredData = allData.filter(item => {
-                // CHỈ TÌM KIẾM TRONG TRƯỜNG 'searchField' (CỘT D)
+                // CHỈ TÌM KIẾM TRONG CỘT D
                 return item.searchField.toLowerCase().includes(searchTerm);
-            }).slice(0, 50);
+            }).slice(0, 100); // Giới hạn 100 kết quả
 
-            // Hiển thị kết quả
+            // Hiển thị kết quả dưới dạng BẢNG
             if (filteredData.length > 0) {
-                // 1. Bắt đầu tạo bảng
-                let tableHTML = '<table class="result-table"><thead><tr>';
+                let tableHTML = '<table class="data-table"><thead><tr>';
                 
-                // Thêm tiêu đề cột (tùy chỉnh ở đầu script)
-                columnHeaders.forEach(header => {
-                    tableHTML += `<th>${header}</th>`;
-                });
-                tableHTML += '</tr></thead><tbody>';
+                // Tiêu đề bảng
+                tableHTML += '<th>Cột A</th><th>Cột B</th><th>Cột C</th><th class="highlight-col-d">Cột D (Tìm)</th></tr></thead><tbody>';
 
-                // 2. Thêm các hàng dữ liệu
+                // Dữ liệu từng hàng
                 filteredData.forEach(item => {
-                    tableHTML += '<tr>';
-                    // Cột A
-                    tableHTML += `<td>${item.colA}</td>`;
-                    // Cột B
-                    tableHTML += `<td>${item.colB}</td>`;
-                    // Cột C
-                    tableHTML += `<td>${item.colC}</td>`;
-                    // Cột D (Được làm nổi bật vì là cột tìm kiếm)
-                    tableHTML += `<td class="highlight-col-d">${item.searchField}</td>`;
-                    tableHTML += '</tr>';
+                    tableHTML += `<tr>
+                        <td>${item.colA}</td>
+                        <td>${item.colB}</td>
+                        <td>${item.colC}</td>
+                        <td class="highlight-col-d">${item.searchField}</td>
+                    </tr>`;
                 });
-                
-                // 3. Kết thúc bảng
+
                 tableHTML += '</tbody></table>';
                 resultsDiv.innerHTML = tableHTML;
             } else {
