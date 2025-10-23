@@ -1,65 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Tra Cứu Dữ Liệu A-H</title>
+    <title>Tra Cứu Dữ Liệu Dạng Bảng Mở Rộng</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        /* Thiết lập chung */
-        body { font-family: Arial, sans-serif; padding: 15px; max-width: 800px; margin: auto; }
+        /* CSS giữ nguyên để tối ưu cho di động */
+        body { font-family: Arial, sans-serif; padding: 15px; max-width: 600px; margin: auto; }
         input[type="text"] { width: 100%; padding: 12px; margin-bottom: 20px; box-sizing: border-box; font-size: 16px; border: 1px solid #ddd; border-radius: 5px; }
-
-        /* Vùng kết quả */
-        .result-item { 
-            border: 1px solid #e0e0e0; 
-            padding: 10px; 
-            margin-bottom: 15px; 
-            border-radius: 5px; 
-            background-color: #f9f9f9; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            /* Bật Flexbox cho các cặp cột/giá trị */
-            display: flex;
-            flex-wrap: wrap; 
-        }
-
-        /* Từng ô dữ liệu */
-        .result-cell {
-            padding: 5px 10px 5px 0;
-            /* Chiều rộng tối thiểu để giữ nội dung, sau đó co giãn linh hoạt */
-            flex: 1 1 50%; /* Tăng flex-basis để 1 dòng chứa 2 cột trên điện thoại */
-            box-sizing: border-box;
-            word-break: break-word; /* Ngắt từ nếu nội dung quá dài */
-        }
-        
-        /* Cột D làm nổi bật */
-        .highlight { 
-            font-weight: bold; 
-            color: #28a745; 
-            border-bottom: 2px solid #28a745; 
-            padding-bottom: 7px; 
-            margin-bottom: 5px;
-            flex: 1 1 100%; /* Đảm bảo Cột D luôn chiếm toàn bộ chiều rộng */
-        }
-        
-        /* Tên cột */
-        .column-name { 
-            font-weight: normal; 
-            color: #777; 
-            margin-right: 5px; 
-            font-size: 0.9em;
-            display: block; /* Đặt tên cột và giá trị trên 2 dòng */
-        }
-        
-        .column-value {
-             font-weight: bold;
-             color: #333;
-        }
-
-        #results p { color: #888; text-align: center; }
+        .result-item { border: 1px solid #e0e0e0; padding: 10px; margin-bottom: 10px; border-radius: 5px; background-color: #f9f9f9; }
+        .result-row div { margin-bottom: 4px; border-bottom: 1px dashed #eee; padding-bottom: 4px; }
+        .result-row div:last-child { border-bottom: none; padding-bottom: 0; }
+        .column-name { font-weight: bold; color: #555; display: inline-block; width: 100px; }
+        .highlight { color: #28a745; font-weight: bold; } /* Highlight Cột D */
+        #results p { color: #888; }
     </style>
 </head>
 <body>
 
-    <h2>🔍 Tra Cứu Dữ Liệu A-H</h2>
+    <h2>🔍 Tra Cứu Dữ Liệu Dạng Bảng Mở Rộng</h2>
     <input type="text" id="searchInput" onkeyup="searchData()" placeholder="Nhập ký tự để tìm trong Cột D...">
 
     <div id="results">
@@ -68,9 +26,9 @@
 
     <script>
         let allData = [];
-        let headers = [];
-        const numColumnsToDisplay = 8; // Chỉ hiển thị cột A (0) đến H (7)
-        const searchColumnIndex = 3;   // Cột D (index 3) dùng để tìm kiếm
+        let headers = []; // Mảng lưu trữ tiêu đề cột
+        const MIN_COLS = 8; // Đặt số cột tối thiểu cần xử lý (A-H là 8 cột)
+        const SEARCH_COL_INDEX = 3; // Index của Cột D
         const dataFilePath = 'data.csv'; 
 
         // Tải và xử lý dữ liệu CSV
@@ -85,42 +43,46 @@
                 document.getElementById('results').innerHTML = '<p>Dữ liệu đã sẵn sàng. Hãy bắt đầu gõ.</p>';
             })
             .catch(error => {
-                document.getElementById('results').innerHTML = '<p style="color:red;">Lỗi: Không thể tải file dữ liệu CSV. Vui lòng kiểm tra tên file và Console.</p>';
+                document.getElementById('results').innerHTML = '<p style="color:red;">Lỗi: Không thể tải file dữ liệu CSV.</p>';
                 console.error('Error loading CSV:', error);
             });
 
-        // Hàm tách tiêu đề cột
+        // Hàm tách tiêu đề cột (từ dòng đầu tiên của CSV)
         function parseHeaders(headerLine) {
-            return headerLine.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g).map(h => h.trim().replace(/^"|"$/g, ''));
+            // Sử dụng regex để tách các giá trị, xử lý dấu phẩy trong ngoặc kép
+            const cols = headerLine.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+            return cols ? cols.map(h => h.trim().replace(/^"|"$/g, '')) : [];
         }
 
-        // Hàm chuyển đổi CSV thành Mảng Dữ liệu
+        // Hàm chuyển đổi CSV thành Mảng Dữ liệu (Lưu trữ tất cả các cột)
         function parseCSV(dataLines) {
             const result = [];
             dataLines.forEach(currentLine => {
                 const columns = currentLine.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
                 
-                if (columns && columns.length > searchColumnIndex) {
-                    let item = { searchField: '' };
+                if (columns && columns.length >= MIN_COLS) {
+                    let item = {};
+                    let searchField = ''; 
                     
                     columns.forEach((col, index) => {
                         const colValue = col.trim().replace(/^"|"$/g, '');
-                        // Lưu tất cả các cột
+                        // Lưu tất cả các cột vào đối tượng item (col0, col1, ..., col7)
                         item[`col${index}`] = colValue; 
                         
-                        // Gán Cột D (index 3) vào trường tìm kiếm
-                        if (index === searchColumnIndex) {
-                            item.searchField = colValue;
+                        // CỘT D (index 3) dùng để tìm kiếm
+                        if (index === SEARCH_COL_INDEX) {
+                            searchField = colValue;
                         }
                     });
 
+                    item.searchField = searchField; // Gán Cột D vào trường tìm kiếm
                     result.push(item);
                 }
             });
             return result;
         }
 
-        // Hàm Tìm kiếm Tự động
+        // Hàm Tìm kiếm Tự động (chạy khi gõ phím)
         function searchData() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
             const resultsDiv = document.getElementById('results');
@@ -136,28 +98,33 @@
                 return item.searchField.toLowerCase().includes(searchTerm);
             }).slice(0, 50);
 
-            // Hiển thị kết quả dưới dạng lưới Flexbox
+            // Hiển thị kết quả dưới dạng cấu trúc bảng/dòng
             if (filteredData.length > 0) {
+                const numColsToDisplay = headers.length > 0 ? headers.length : MIN_COLS; // Số cột hiển thị
+
                 filteredData.forEach(item => {
                     const resultItem = document.createElement('div');
                     resultItem.className = 'result-item';
-                    let htmlContent = '';
+                    let htmlContent = '<div class="result-row">';
                     
-                    // Lặp qua Cột A (0) đến H (7)
-                    for (let i = 0; i < numColumnsToDisplay; i++) {
+                    // Lặp qua tất cả các cột đã được đọc (từ 0 đến numColsToDisplay-1)
+                    for (let i = 0; i < numColsToDisplay; i++) {
                         const colKey = `col${i}`;
                         const colValue = item[colKey] || '';
-                        const isSearchCol = i === searchColumnIndex;
-                        const headerText = headers[i] || `Cột ${String.fromCharCode(65 + i)}`; // A=65
-
+                        const isSearchCol = i === SEARCH_COL_INDEX; // Cột D
+                        
+                        // Lấy tiêu đề cột hoặc hiển thị tên mặc định
+                        const colName = headers[i] || `Cột ${String.fromCharCode(65 + i)}`; 
+                        
                         htmlContent += `
-                            <div class="result-cell ${isSearchCol ? 'highlight' : ''}">
-                                <span class="column-name">${headerText}:</span> 
-                                <span class="column-value">${colValue}</span>
+                            <div class="${isSearchCol ? 'highlight' : ''}">
+                                <span class="column-name">${colName}:</span> 
+                                ${colValue}
                             </div>
                         `;
                     }
 
+                    htmlContent += '</div>';
                     resultItem.innerHTML = htmlContent;
                     resultsDiv.appendChild(resultItem);
                 });
