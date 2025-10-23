@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tra Cứu Mã Hàng</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 15px; max-width: 600px; margin: auto; }
+        input[type="text"] { width: 100%; padding: 12px; margin-bottom: 20px; box-sizing: border-box; font-size: 16px; border: 1px solid #ddd; border-radius: 5px; }
+        .result-item { border: 1px solid #e0e0e0; padding: 10px; margin-bottom: 8px; border-radius: 5px; background-color: #f9f9f9; }
+        .result-code { font-weight: bold; color: #0056b3; font-size: 1.1em; }
+        .result-name { font-size: 0.9em; color: #555; margin-top: 3px; }
+        #results p { color: #888; }
+    </style>
+</head>
+<body>
+
+    <h2>Tra Cứu Mã Hàng</h2>
+    <input type="text" id="searchInput" onkeyup="searchData()" placeholder="Nhập mã hàng hoặc tên hàng...">
+
+    <div id="results">
+        <p>Bắt đầu gõ để tìm kiếm...</p>
+    </div>
+
+    <script>
+        let allData = [];
+        const dataFilePath = 'data.csv'; // ĐẢM BẢO KHỚP VỚI TÊN FILE CSV CỦA BẠN
+
+        // Tải và xử lý dữ liệu CSV
+        fetch(dataFilePath)
+            .then(response => response.text())
+            .then(csvText => {
+                allData = parseCSV(csvText);
+                document.getElementById('results').innerHTML = '<p>Dữ liệu đã sẵn sàng. Hãy bắt đầu gõ.</p>';
+            })
+            .catch(error => {
+                document.getElementById('results').innerHTML = '<p style="color:red;">Lỗi: Không thể tải file dữ liệu CSV.</p>';
+                console.error('Error loading CSV:', error);
+            });
+
+        // Hàm chuyển đổi CSV thành Mảng Dữ liệu
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const result = [];
+            // Bỏ qua dòng header (dòng 0)
+            for (let i = 1; i < lines.length; i++) {
+                const currentLine = lines[i].trim();
+                if (currentLine) {
+                    // Dùng regex để xử lý dấu phẩy bên trong dấu ngoặc kép (nếu có)
+                    const columns = currentLine.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || currentLine.split(',');
+                    if (columns.length >= 2) {
+                        result.push({
+                            // Cột 0: Mã hàng
+                            code: columns[0].trim().replace(/^"|"$/g, ''),
+                            // Cột 1: Tên sản phẩm
+                            name: columns[1].trim().replace(/^"|"$/g, '')
+                        });
+                    }
+                }
+            }
+            return result;
+        }
+
+        // Hàm Tìm kiếm Tự động (chạy khi gõ phím)
+        function searchData() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            if (searchTerm.length === 0) {
+                resultsDiv.innerHTML = '<p>Bắt đầu gõ để tìm kiếm...</p>';
+                return;
+            }
+
+            const filteredData = allData.filter(item => {
+                // Tự động tìm kiếm ký tự trong Mã hàng HOẶC Tên hàng
+                return item.code.toLowerCase().includes(searchTerm) || 
+                       item.name.toLowerCase().includes(searchTerm);
+            }).slice(0, 50); // Giới hạn 50 kết quả đầu tiên để tối ưu hiệu suất
+
+            // Hiển thị kết quả
+            if (filteredData.length > 0) {
+                filteredData.forEach(item => {
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'result-item';
+                    resultItem.innerHTML = `<div class="result-code">Mã: ${item.code}</div><div class="result-name">Tên: ${item.name}</div>`;
+                    resultsDiv.appendChild(resultItem);
+                });
+            } else {
+                resultsDiv.innerHTML = `<p>Không tìm thấy kết quả cho "${searchTerm}".</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
